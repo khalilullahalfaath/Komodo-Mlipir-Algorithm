@@ -104,4 +104,4 @@ def get_function(function_id, dimension):
             upper_bound = 10
             lower_bound = 0
             optimum_value = -10.5364
-    return upper_bound, lower_bound, optimum_value
+    return upper_bound, lower_bound, optimum_value, n_var
