@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Benchmark:
     @staticmethod
     def get_function(function_id: int) -> tuple:

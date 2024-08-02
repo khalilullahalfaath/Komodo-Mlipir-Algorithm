@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Tuple, List
-from benchmarks import Benchmark
+from algorithms.benchmarks import Benchmark
 
 
 class KMA:
@@ -148,16 +148,6 @@ class KMA:
     def run(
         self,
     ) -> Tuple[np.ndarray, float, int, List[float], List[float], float, List[int]]:
-        # Implement the main KMA logic here
-        # This is a placeholder implementation
-        # best_indiv = np.zeros(self.dimension)
-        # opt_val = 0.0
-        # num_eva = self.max_num_eva
-        # fopt = [0.0] * num_eva
-        # fmean = [0.0] * num_eva
-        # proc_time = 0.0
-        # evo_pop_size = [self.pop_size] * num_eva
-        # return best_indiv, opt_val, num_eva, fopt, fmean, proc_time, evo_pop_size
 
         # generate the initial population of population size komodo individuals
         self.pop = self.pop_cons_initialization(self.pop_size)
@@ -169,3 +159,12 @@ class KMA:
             self.fx[:, [i]] = self.evaluation(self.pop[[i], :])
 
         print(self.fx)
+
+        best_indiv = np.zeros(self.dimension)
+        opt_val = 0.0
+        num_eva = self.max_num_eva
+        fopt = [0.0] * num_eva
+        fmean = [0.0] * num_eva
+        proc_time = 0.0
+        evo_pop_size = [self.pop_size] * num_eva
+        return best_indiv, opt_val, num_eva, fopt, fmean, proc_time, evo_pop_size
