@@ -1,10 +1,10 @@
 import numpy as np
 
 
-class BenchmarkFunctions:
+class Benchmark:
     @staticmethod
     def get_function(function_id: int) -> tuple:
-        return BenchmarkFunctions.get_params(function_id)
+        return Benchmark.get_params(function_id)
 
     def get_params(function_id: int) -> tuple[int, float, float, float]:
         """
@@ -22,15 +22,15 @@ class BenchmarkFunctions:
         match (function_id):
             case 1:
                 n_var = 50
-                ra = 100.0
-                rb = -100.0
+                ub = 100.0
+                lb = -100.0
                 fthreshold_fx = 0.0
 
             case _:
                 # default
                 raise ValueError(f"Function ID {function_id} not implemented")
 
-        return n_var, ra, rb, fthreshold_fx
+        return n_var, ub, lb, fthreshold_fx
 
     @staticmethod
     def evaluate(x: np.ndarray, function_id: int) -> float:
@@ -50,8 +50,8 @@ class BenchmarkFunctions:
             DivideByZero
         """
 
-        if x.ndim != 1:
-            raise Exception("Shape off the array X is not 1 dimension")
+        if x.ndim != 2 and x.shape[0] == 1:
+            raise Exception("Shape of the array X is not (1,n_var)")
 
         n_dimension = x.shape[0]
 
