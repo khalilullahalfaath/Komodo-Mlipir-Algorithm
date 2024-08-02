@@ -1,9 +1,15 @@
 import unittest
 import numpy as np
 from io import StringIO
-from algorithms.kma_algorithm import KMA
+import sys
+import os
 from os.path import dirname, join as pjoin
 import scipy.io as sio
+
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
+from src.algorithms.kma_algorithm import KMA
 
 
 class TestKMA(unittest.TestCase):
@@ -36,7 +42,10 @@ class TestKMA(unittest.TestCase):
         print("Generated population:")
         print(self.kma.pop)
 
-        mat_contents = sio.loadmat("data/pop.mat")
+        mat_file_path = os.path.join(os.path.dirname(__file__), "data", "pop.mat")
+        mat_contents = sio.loadmat(mat_file_path)
+
+        print(mat_contents)
 
         # Convert the MATLAB data string to a numpy array
         matlab_pop = mat_contents
