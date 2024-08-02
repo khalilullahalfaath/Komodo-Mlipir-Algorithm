@@ -1,6 +1,8 @@
 import numpy as np
+from numpy.random import default_rng
 from typing import Tuple, List
 from src.algorithms.benchmarks import Benchmark
+import math
 
 
 class KMA:
@@ -18,7 +20,7 @@ class KMA:
 
         # get a bechmark function
         self.nvar, self.ub, self.lb, self.fthreshold_fx = Benchmark.get_function(
-            self.function_id
+            self.dimension, self.function_id
         )
         self.ra = np.ones((1, self.nvar)) * self.ub
         self.rb = np.ones((1, self.nvar)) * self.lb
@@ -76,25 +78,28 @@ class KMA:
 
         individu_X = 0
 
-        for nn in range(0, ps, 4):
+        # for random
+        rng = default_rng(42)
+
+        for nn in range(1, ps + 1, 4):
             if ps - nn >= 4:
                 # n_loc = number of locations (at the four corners of the problem landscape)
                 n_loc = 4
             else:
-                n_loc = ps - nn
+                n_loc = ps - nn + 1
 
             ss = 0
 
-            while ss < n_loc:
+            while ss <= n_loc - 1:
                 temp = np.zeros((1, self.nvar))
-                for i in range(self.nvar // 2):
+                for i in range(0, math.floor(self.nvar / 2)):
                     temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
-                        f1[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+                        f1[ss,] + ((rng.random() * 2) - 1) * 0.01
                     )
 
-                for i in range(self.nvar // 2, self.nvar):
+                for i in range(math.floor(self.nvar / 2), self.nvar):
                     temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
-                        f2[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+                        f2[ss,] + ((rng.random() * 2) - 1) * 0.01
                     )
 
                 x[[individu_X], :] = temp
