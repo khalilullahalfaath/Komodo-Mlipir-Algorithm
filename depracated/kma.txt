@@ -1,0 +1,80 @@
+    def pop_cons_initialization(self, ps: int) -> np.ndarray:
+        """
+        Create a population constrained to the defined upper (ub) and lower (lb) bounds
+
+        Args:
+            ps: population size
+
+        Returns:
+            Returns a population constrained to the defined ub and lb with shape ((ps))
+
+        Raises:
+
+
+        """
+        # f1 = np.array([0.01, 0.01, 0.99, 0.99])
+        # f2 = np.array([0.01, 0.99, 0.01, 0.99])
+
+        # x = np.zeros((ps, self.nvar))
+
+        # individu_X = 0
+
+        # for nn in range(1, ps + 1, 4):
+        #     if ps - nn >= 4:
+        #         # n_loc = number of locations (at the four corners of the problem landscape)
+        #         n_loc = 4
+        #     else:
+        #         n_loc = ps - nn + 1
+
+        #     ss = 0
+
+        #     while ss <= n_loc - 1:
+        #         temp = np.zeros((1, self.nvar))
+        #         for i in range(0, math.floor(self.nvar / 2)):
+        #             temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
+        #                 f1[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+        #             )
+
+        #         for i in range(math.floor(self.nvar / 2), self.nvar):
+        #             temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
+        #                 f2[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+        #             )
+
+        #         x[[individu_X], :] = temp
+        #         individu_X += 1
+        #         ss += 1
+
+        # return x
+
+        # initialize population
+        F1 = np.array([0.01, 0.01, 0.99, 0.99])
+        F2 = np.array([0.01, 0.99, 0.01, 0.99])
+        X = np.zeros((ps, self.nvar))
+        IndX = 0
+
+        for nn in range(1, ps + 1, 4):
+            if ps - nn >= 4:
+                NL = 4
+            else:
+                NL = ps - nn + 1
+
+            ss = 0
+            while ss <= NL - 1:
+                Temp = np.zeros((1, self.nvar))
+                for i in range(0, math.floor(self.nvar / 2)):
+                    Temp[:, i] = self.rb[0, i] + (
+                        (self.ra[0, i] - self.rb[0, i])
+                        * (F1[ss] + ((random.random() * 2) - 1) * 0.01)
+                    )
+
+                for i in range(math.floor(self.nvar / 2), self.nvar):
+                    Temp[:, i] = self.rb[0, i] + (
+                        (self.ra[0, i] - self.rb[0, i])
+                        * (F2[ss] + ((random.random() * 2) - 1) * 0.01)
+                    )
+
+                X[IndX, :] = Temp
+                IndX += 1
+                ss += 1
+
+        return X
