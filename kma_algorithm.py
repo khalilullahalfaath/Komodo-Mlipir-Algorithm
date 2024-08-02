@@ -1,24 +1,27 @@
 import numpy as np
 from typing import Tuple, List
-from benchmarks import BenchmarkFunctions
+from benchmarks import Benchmark
 
 
 class KMA:
     def __init__(
         self, function_id: int, dimension: int, max_num_eva: int, pop_size: int
     ):
-        self.function_id = function_id
-        self.dimension = dimension
-        self.max_num_eva = max_num_eva
-        self.pop_size = pop_size
-        self.min_ada_pop_size = pop_size * 4
-        self.max_ada_pop_size = pop_size * 40
-
-        self.nvar, self.ra, self.rb, self.fthreshold_fx = (
-            BenchmarkFunctions.get_function(self.function_id)
+        self.function_id = function_id  # identity of the benchmark function
+        self.dimension = (
+            dimension  # dimension can be scaled up to thousands for the functions
         )
-        self.ra = np.ones(self.nvar) * self.ra
-        self.rb = np.ones(self.nvar) * self.rb
+        self.max_num_eva = max_num_eva  # maximum number of evaluations
+        self.pop_size = pop_size  # population size (number of komodo individuals)
+        self.min_ada_pop_size = pop_size * 4  # minimum adaptive size
+        self.max_ada_pop_size = pop_size * 40  # maximum adaptive size
+
+        # get a bechmark function
+        self.nvar, self.ub, self.lb, self.fthreshold_fx = Benchmark.get_function(
+            self.function_id
+        )
+        self.ra = np.ones((1, self.nvar)) * self.ub
+        self.rb = np.ones((1, self.nvar)) * self.lb
 
         self.big_males = None
         self.big_males_fx = None
@@ -32,16 +35,73 @@ class KMA:
         self.mut_rate = 0.5
         self.mut_radius = 0.5
 
-    def evaluation(self, x: np.ndarray) -> float:
-        return BenchmarkFunctions.evaluate(x, self.function_id)
+        self.pop = None
+        self.fx = None
 
-    def get_function(self) -> Tuple[int, float, float, float]:
-        # Implement GetFunction logic here
-        pass
+    def evaluation(self, x: np.ndarray) -> float:
+        """
+        Evaluate one komodo individual for the given function id
+
+        Args:
+            x: array of Komodo Individuals with shape ((n_var))
+
+        Returns:
+            Returns evaluation result for the komodo individuals
+
+        Raises:
+            ValueError: function_id is not defined
+            ArrayOutOfBoundError:
+            DivideByZero
+        """
+        return Benchmark.evaluate(x, self.function_id)
 
     def pop_cons_initialization(self, ps: int) -> np.ndarray:
-        # Implement PopConsInitialization logic here
-        pass
+        """
+        Create a population constrained to the defined upper (ub) and lower (lb) bounds
+
+        Args:
+            ps: population size
+
+        Returns:
+            Returns a population constrained to the defined ub and lb with shape ((ps))
+
+        Raises:
+
+
+        """
+        f1 = np.array([0.01, 0.01, 0.99, 0.99])
+        f2 = np.array([0.01, 0.99, 0.01, 0.99])
+
+        x = np.zeros((ps, self.nvar))
+
+        individu_X = 0
+
+        for nn in range(0, ps, 4):
+            if ps - nn >= 4:
+                # n_loc = number of locations (at the four corners of the problem landscape)
+                n_loc = 4
+            else:
+                n_loc = ps - nn
+
+            ss = 0
+
+            while ss < n_loc:
+                temp = np.zeros((1, self.nvar))
+                for i in range(self.nvar // 2):
+                    temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
+                        f1[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+                    )
+
+                for i in range(self.nvar // 2, self.nvar):
+                    temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
+                        f2[ss,] + ((np.random.rand() * 2) - 1) * 0.01
+                    )
+
+                x[[individu_X], :] = temp
+                individu_X += 1
+                ss += 1
+
+        return x
 
     def move_big_males_female_first_stage(self):
         # Implement MoveBigMalesFemaleFirstStage logic here
@@ -90,11 +150,22 @@ class KMA:
     ) -> Tuple[np.ndarray, float, int, List[float], List[float], float, List[int]]:
         # Implement the main KMA logic here
         # This is a placeholder implementation
-        best_indiv = np.zeros(self.dimension)
-        opt_val = 0.0
-        num_eva = self.max_num_eva
-        fopt = [0.0] * num_eva
-        fmean = [0.0] * num_eva
-        proc_time = 0.0
-        evo_pop_size = [self.pop_size] * num_eva
-        return best_indiv, opt_val, num_eva, fopt, fmean, proc_time, evo_pop_size
+        # best_indiv = np.zeros(self.dimension)
+        # opt_val = 0.0
+        # num_eva = self.max_num_eva
+        # fopt = [0.0] * num_eva
+        # fmean = [0.0] * num_eva
+        # proc_time = 0.0
+        # evo_pop_size = [self.pop_size] * num_eva
+        # return best_indiv, opt_val, num_eva, fopt, fmean, proc_time, evo_pop_size
+
+        # generate the initial population of population size komodo individuals
+        self.pop = self.pop_cons_initialization(self.pop_size)
+
+        # calculate all the fitness values of the population size komodo individuals
+        self.fx = np.zeros((1, self.pop_size))
+
+        for i in range(self.pop_size):
+            self.fx[:, [i]] = self.evaluation(self.pop[[i], :])
+
+        print(self.fx)
