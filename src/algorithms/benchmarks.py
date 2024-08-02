@@ -1,15 +1,17 @@
 import numpy as np
 
+
 class Benchmark:
     @staticmethod
-    def get_function(function_id: int) -> tuple:
-        return Benchmark.get_params(function_id)
+    def get_function(dimension: int, function_id: int) -> tuple:
+        return Benchmark.get_params(dimension, function_id)
 
-    def get_params(function_id: int) -> tuple[int, float, float, float]:
+    def get_params(dimension: int, function_id: int) -> tuple[int, float, float, float]:
         """
         Get params of a function
 
         Args:
+            dimension: the number of dimension default equals to dimension
             function_id: the id of a function
 
         Returns:
@@ -18,18 +20,18 @@ class Benchmark:
         Raises:
             ValueError: function_id not found
         """
+        n_var = dimension
         match (function_id):
             case 1:
                 n_var = 50
                 ub = 100.0
                 lb = -100.0
-                fthreshold_fx = 0.0
-
+                min_val = 0.0
             case _:
                 # default
                 raise ValueError(f"Function ID {function_id} not implemented")
 
-        return n_var, ub, lb, fthreshold_fx
+        return n_var, ub, lb, min_val
 
     @staticmethod
     def evaluate(x: np.ndarray, function_id: int) -> float:
@@ -51,8 +53,6 @@ class Benchmark:
 
         if x.ndim != 2 and x.shape[0] == 1:
             raise Exception("Shape of the array X is not (1,n_var)")
-
-        n_dimension = x.shape[0]
 
         match (function_id):
             case 1:
