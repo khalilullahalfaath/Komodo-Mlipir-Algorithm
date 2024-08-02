@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from kma_algorithm import KMA
+from src.algorithms.kma_algorithm import KMA
 
 
 class KMADriver:
