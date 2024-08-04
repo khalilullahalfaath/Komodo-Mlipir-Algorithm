@@ -68,8 +68,6 @@ class KMA:
             Returns a population constrained to the defined ub and lb with shape ((ps))
 
         Raises:
-
-
         """
         f1 = np.array([0.01, 0.01, 0.99, 0.99])
         f2 = np.array([0.01, 0.99, 0.01, 0.99])
@@ -78,31 +76,27 @@ class KMA:
 
         individu_X = 0
 
-        # for random
-        rng = default_rng(42)
-
-        for nn in range(1, ps + 1, 4):
+        for nn in range(0, ps, 4):  # Adjust to start from 0 for Python
             if ps - nn >= 4:
-                # n_loc = number of locations (at the four corners of the problem landscape)
                 n_loc = 4
             else:
-                n_loc = ps - nn + 1
+                n_loc = ps - nn
 
             ss = 0
 
-            while ss <= n_loc - 1:
+            while ss < n_loc:
                 temp = np.zeros((1, self.nvar))
                 for i in range(0, math.floor(self.nvar / 2)):
-                    temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
-                        f1[ss,] + ((rng.random() * 2) - 1) * 0.01
+                    temp[0, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
+                        f1[ss] + ((np.random.rand() * 2) - 1) * 0.01
                     )
 
                 for i in range(math.floor(self.nvar / 2), self.nvar):
-                    temp[:, [i]] = self.rb[:, i] + (self.ra[:, i] - self.rb[:, i]) * (
-                        f2[ss,] + ((rng.random() * 2) - 1) * 0.01
+                    temp[0, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
+                        f2[ss] + ((np.random.rand() * 2) - 1) * 0.01
                     )
 
-                x[[individu_X], :] = temp
+                x[individu_X, :] = temp
                 individu_X += 1
                 ss += 1
 
