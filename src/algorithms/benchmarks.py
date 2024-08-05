@@ -151,7 +151,7 @@ class Benchmark:
         if x.ndim != 2 and x.shape[0] == 1:
             raise Exception("Shape of the array X is not (1,n_var)")
 
-        dim = x.shape[1]
+        dim = len(x)
 
         match (function_id):
             case 1:
@@ -162,7 +162,11 @@ class Benchmark:
                 return np.sum(np.abs(x)) + np.prod(np.abs(x))
             case 3:
                 # Schwefel 1.2
-                return sum(np.sum(x[: i + 1]) ** 2 for i in range(dim))
+                fx = 0
+                dimTemp = len(x) + 1
+                for i in range(1, dimTemp):
+                    fx += np.sum(np.power(x[0:i], 2))
+                return fx
             case 4:
                 # Schwefel 2.21
                 return np.max(np.abs(x))
