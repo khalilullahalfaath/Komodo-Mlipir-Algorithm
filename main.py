@@ -65,7 +65,7 @@ class KMADriver:
 
 
 if __name__ == "__main__":
-    function_id = 1
+    function_id = 10
     dimension = 50
     max_num_eva = 25000
     pop_size = 5
