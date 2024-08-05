@@ -148,10 +148,12 @@ class Benchmark:
             DivideByZero
         """
 
-        if x.ndim != 2 and x.shape[0] == 1:
-            raise Exception("Shape of the array X is not (1,n_var)")
+        if x.ndim != 2 and x.shape[0] != 1:
+            x = x.reshape(1, -1)
+            if x.ndim != 2 and x.shape[0] != 1:
+                raise Exception("Shape of the array X is not (1,n_var)")
 
-        dim = len(x)
+        dim = x.shape[1]
 
         match (function_id):
             case 1:
@@ -172,7 +174,11 @@ class Benchmark:
                 return np.max(np.abs(x))
             case 5:
                 # Rosenbrock
-                return np.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (x[:-1] - 1) ** 2)
+                x = np.squeeze(x)
+                return np.sum(
+                    100 * (x[1:dim] - (x[0 : dim - 1] ** 2)) ** 2
+                    + (x[0 : dim - 1] - 1) ** 2
+                )
             case 6:
                 # Step
                 return np.sum(np.floor(x + 0.5) ** 2)
