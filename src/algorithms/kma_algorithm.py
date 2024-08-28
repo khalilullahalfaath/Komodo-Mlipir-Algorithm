@@ -129,7 +129,7 @@ class KMA:
 
         for ss in range(temp_small_males.shape[0]):
             max_fol_hq = np.random.randint(1, 3)
-            vm = np.zeros((1, self.dimension))
+            vm = np.zeros((1, self.nvar))
             rhq = np.random.permutation(hq.shape[0])
             fol_hq = 0
 
@@ -226,7 +226,7 @@ class KMA:
 
         for ss in range(temp_small_males.shape[0]):
             max_fol_hq = np.random.randint(1, 3)
-            vm = np.zeros((1, self.dimension))
+            vm = np.zeros((1, self.nvar))
             rhq = np.random.permutation(global_hq.shape[0])
             fol_hq = 0
 
@@ -736,6 +736,13 @@ class KMA:
             self.move_small_males_first_stage()
 
             self.pop = np.vstack((self.big_males, self.female, self.small_males))
+
+            # make sure female_fx has the same dimension
+            if self.female_fx.shape != (1, 1):
+                self.female_fx = self.female_fx.reshape(1, -1)
+                if self.female_fx.shape != (1, 1):
+                    raise ValueError("Female shape is incorrect")
+
             self.fx = np.hstack(
                 (self.big_males_fx, self.female_fx, self.small_males_fx)
             )

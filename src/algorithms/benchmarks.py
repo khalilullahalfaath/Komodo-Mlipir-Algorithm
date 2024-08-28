@@ -68,7 +68,7 @@ class Benchmark:
                 min_val = 0.0
             case 12:
                 ub = 50.0
-                lb = -5 - 0.0
+                lb = -50.0
                 min_val = 0.0
             case 13:
                 ub = 50.0
@@ -208,15 +208,29 @@ class Benchmark:
                 )
             case 12:
                 # Penalized
+                x = np.squeeze(x)
                 a, k, m = 10, 100, 4
+                dim = len(x)  # Dimension of the input vector
+
+                # Transform the input vector x
                 y = 1 + (x + 1) / 4
-                return (np.pi / dim) * (
+
+                # First term of the function
+                first_term = (np.pi / dim) * (
                     10 * np.sin(np.pi * y[0]) ** 2
                     + np.sum((y[:-1] - 1) ** 2 * (1 + 10 * np.sin(np.pi * y[1:]) ** 2))
                     + (y[-1] - 1) ** 2
-                ) + np.sum(
+                )
+
+                # Penalty term
+                penalty = np.sum(
                     k * ((x - a) ** m) * (x > a) + k * ((-x - a) ** m) * (x < -a)
                 )
+
+                # Final function value
+                fx = first_term + penalty
+
+                return fx
 
             case 13:
                 # Penalized2
@@ -294,6 +308,7 @@ class Benchmark:
 
             case 15:
                 # Kowalik
+                x = np.squeeze(x)
                 a = np.array(
                     [
                         0.1957,
@@ -320,6 +335,7 @@ class Benchmark:
 
             case 16:
                 # Six Hump Camel
+                x = np.squeeze(x)
                 return (
                     4 * (x[0] ** 2)
                     - 2.1 * (x[0] ** 4)
@@ -331,6 +347,7 @@ class Benchmark:
 
             case 17:
                 # Branin
+                x = np.squeeze(x)
                 return (
                     (x[1] - (x[0] ** 2) * 5.1 / (4 * (np.pi**2)) + 5 / np.pi * x[0] - 6)
                     ** 2
@@ -340,6 +357,7 @@ class Benchmark:
 
             case 18:
                 # GoldStein-Price
+                x = np.squeeze(x)
                 return (
                     1
                     + (x[0] + x[1] + 1) ** 2
@@ -365,6 +383,7 @@ class Benchmark:
                 )
 
             case 19:
+                x = np.squeeze(x)
                 # Hartman 3
                 a = np.array([[3, 10, 30], [0.1, 10, 35], [3, 10, 30], [0.1, 10, 35]])
                 c = np.array([1, 1.2, 3, 3.2])
@@ -385,6 +404,7 @@ class Benchmark:
 
             case 20:
                 # Hartman 6
+                x = np.squeeze(x)
                 af = np.array(
                     [
                         [10, 3, 17, 3.5, 1.7, 8],
@@ -410,6 +430,7 @@ class Benchmark:
                     return -np.sum(cf * np.exp(-np.sum(af * ((x - pf) ** 2), axis=1)))
 
             case 21:
+                x = np.squeeze(x)
                 # shekel 5
                 a = np.array(
                     [
@@ -433,6 +454,7 @@ class Benchmark:
                     return -np.sum(1 / (np.sum((x - a[:m]) ** 2, axis=1) + c[:m]))
 
             case 22:
+                x = np.squeeze(x)
                 # shekel 7
                 a = np.array(
                     [
@@ -455,6 +477,7 @@ class Benchmark:
                 else:
                     return -np.sum(1 / (np.sum((x - a[:m]) ** 2, axis=1) + c[:m]))
             case 23:
+                x = np.squeeze(x)
                 # shekel 10
                 a = np.array(
                     [
