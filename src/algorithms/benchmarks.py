@@ -175,10 +175,11 @@ class Benchmark:
             case 5:
                 # Rosenbrock
                 x = np.squeeze(x)
-                return np.sum(
+                result = np.sum(
                     100 * (x[1:dim] - (x[0 : dim - 1] ** 2)) ** 2
                     + (x[0 : dim - 1] - 1) ** 2
                 )
+                return result
             case 6:
                 # Step
                 return np.sum(np.floor(x + 0.5) ** 2)

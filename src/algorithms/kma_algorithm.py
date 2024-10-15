@@ -80,23 +80,23 @@ class KMA:
 
         individu_X = 0
 
-        for nn in range(0, ps, 4):
+        for nn in range(1, ps + 1, 4):
             if ps - nn >= 4:
                 n_loc = 4
             else:
-                n_loc = ps - nn
+                n_loc = ps - nn + 1
 
             ss = 0
 
-            while ss < n_loc:
+            while ss <= n_loc - 1:
                 temp = np.zeros((1, self.nvar))
                 for i in range(0, math.floor(self.nvar / 2)):
-                    temp[0, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
+                    temp[:, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
                         f1[ss] + ((np.random.rand() * 2) - 1) * 0.01
                     )
 
                 for i in range(math.floor(self.nvar / 2), self.nvar):
-                    temp[0, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
+                    temp[:, i] = self.rb[0, i] + (self.ra[0, i] - self.rb[0, i]) * (
                         f2[ss] + ((np.random.rand() * 2) - 1) * 0.01
                     )
 
@@ -110,16 +110,8 @@ class KMA:
         """
         Move Big Males and Female in the first stage. The winner mates Female (if the Female wants)
 
-
-        Args:
-
-
-        Returns:
-
-
         Raises:
             ValueError: array shape is not correct
-
         """
         hq = np.copy(self.big_males)
         hq_fx = np.copy(self.big_males_fx)
@@ -128,7 +120,7 @@ class KMA:
         temp_small_males_fx = np.copy(self.big_males_fx)
 
         for ss in range(temp_small_males.shape[0]):
-            max_fol_hq = np.random.randint(1, 3)
+            max_fol_hq = np.random.randint(1, 3)  # generate random [1,2]
             vm = np.zeros((1, self.nvar))
             rhq = np.random.permutation(hq.shape[0])
             fol_hq = 0
@@ -148,10 +140,11 @@ class KMA:
                     if fol_hq >= max_fol_hq:
                         break
 
-            new_big_males = temp_small_males[ss, :].copy() + vm
+            # new movement of big males
+            new_big_males = np.copy(temp_small_males[ss, :]) + np.copy(vm)
             new_big_males = self.trimr(new_big_males)
 
-            temp_small_males[ss, :] = new_big_males
+            temp_small_males[ss, :] = np.copy(new_big_males)
             temp_small_males_fx[:, ss] = self.evaluation(new_big_males)
 
         self.big_males, self.big_males_fx = self.replacement(
@@ -201,22 +194,16 @@ class KMA:
         """
         Move Big Males and Female in the second stage. The winner mates Female (if the Female wants)
 
-
-
-        Args:
-
-
-        Returns:
-
-
         Raises:
             ValueError: array shape is not correct
 
         """
 
         if self.all_hq.shape[0] != 0:
-            global_hq = np.copy(np.vstack((self.big_males, self.all_hq)))
-            global_hq_fx = np.copy(np.hstack((self.big_males_fx, self.all_hq_fx)))
+            global_hq = np.vstack((np.copy(self.big_males), np.copy(self.all_hq)))
+            global_hq_fx = np.hstack(
+                (np.copy(self.big_males_fx), np.copy(self.all_hq_fx))
+            )
         else:
             global_hq = np.copy(self.big_males)
             global_hq_fx = np.copy(self.big_males_fx)
@@ -249,10 +236,10 @@ class KMA:
                     if fol_hq >= max_fol_hq:
                         break
 
-            new_big_males = temp_small_males[ss, :].copy() + vm
-            new_big_males = self.trimr(new_big_males)
+            new_big_males = temp_small_males[ss, :].copy() + vm.copy()
+            new_big_males = self.trimr(new_big_males.copy())
 
-            temp_small_males[ss, :] = new_big_males
+            temp_small_males[ss, :] = new_big_males.copy()
             temp_small_males_fx[:, ss] = self.evaluation(new_big_males)
 
         self.big_males, self.big_males_fx = self.replacement(
@@ -473,11 +460,6 @@ class KMA:
         """
         new_female = np.copy(self.female)  # Initialize a new Female
 
-        if new_female.shape != (1, self.nvar):
-            new_female = new_female.reshape(1, -1)
-            if new_female.shape() != (1, self.nvar):
-                raise ValueError("Array female after mutation is not correct")
-
         max_step = self.mut_radius * (
             self.ra - self.rb
         )  # Maximum step of the Female mutation
@@ -486,8 +468,8 @@ class KMA:
             if (
                 np.random.rand() < self.mut_rate
             ):  #  Check if a random value is lower than the Mutation Rate
-                new_female[0, i] = (
-                    self.female[0, i] + (2 * np.random.rand() - 1) * max_step[0, i]
+                new_female[:, i] = (
+                    self.female[:, i] + ((2 * np.random.rand()) - 1) * max_step[0, i]
                 )
 
         new_female = self.trimr(
@@ -495,32 +477,31 @@ class KMA:
         )  # Limit the values into the given dimensional boundaries
         return new_female
 
-    def levy(self, n: int, m: int, beta: float) -> np.ndarray:
+    def levy(self, beta=1.0, size=None) -> np.ndarray:
         """
         Generate Lévy flight steps.
 
         Parameters:
-        n (int): Number of steps
-        m (int): Number of dimensions
         beta (float): Power law index (should be between 1 and 2)
+        size (tuple, list): size of levy flights steps, for instance: (3,2), 5, (4, )
 
         Returns:
-        np.ndarray: Array of shape (n, m) containing Lévy flight steps
+        np.ndarray: Array of shape (n, m) contains Lévy flight steps
         """
         # Calculate parameters
-        sigma = np.power(
-            gamma(1 + beta)
-            * np.sin(np.pi * beta / 2)
-            / (gamma((1 + beta) / 2) * beta * np.power(2, (beta - 1) / 2)),
-            1 / beta,
-        )
+        num = math.gamma(1 + beta) * np.sin(np.pi * beta / 2)  # numerator
+        den = (
+            math.gamma((1 + beta) / 2) * beta * np.power(2, ((beta - 1) / 2))
+        )  # denominator
+        sigma_u = (num / den) ** (1 / beta)  # standard deviation
+        u = np.random.normal(0, sigma_u, size)
 
-        # Generate random variables
-        u = np.random.normal(0, sigma, size=(n, m))
-        v = np.random.normal(0, 1, size=(n, m))
+        # sigma_v : standard deviation of v
+        sigma_v = 1
+        v = np.random.normal(0, sigma_v, size)
 
         # Calculate Lévy steps
-        z = u / np.power(np.abs(v), 1 / beta)
+        z = u / np.power(np.abs(v), (1 / beta))
 
         return z
 
@@ -539,18 +520,17 @@ class KMA:
 
         """
         # generate levy flight step
-        levy_step = self.levy(1, self.nvar, 1.5).reshape(1, -1)
+        new_x_temp = x.copy()
 
-        if levy_step.shape != (1, self.nvar):
-            raise ValueError("levy step array shape is not correct")
+        levy_value = 0.05 * self.levy(1.5, (1, self.nvar))
 
-        new_x = x + 0.05 * levy_step * np.abs(self.ra - self.rb)
+        new_x = new_x_temp + (levy_value * np.abs(self.ra - self.rb))
 
         if new_x.shape != (1, self.nvar):
             new_x = new_x.reshape(1, -1)
             if new_x.shape != (1, self.nvar):
                 raise ValueError(
-                    "new_x shape in adding_pop is not correct (1,self.nvar)"
+                    f"new_x shape with a shape of {new_x.shape} in adding_pop is not correct. Must be (1,self.nvar)"
                 )
 
         new_x = self.trimr(new_x)
@@ -560,7 +540,9 @@ class KMA:
         if new_fx.shape != (1, 1):
             new_fx = new_fx.reshape(1, -1)
             if new_fx.shape != (1, 1):
-                raise ValueError("new_fx shape in adding_pop is not correct (1,1)")
+                raise ValueError(
+                    f"new_fx with a shape of {new_fx.shape} shape in adding_pop is not correct. Must be (1,1)"
+                )
 
         return new_x, new_fx
 
@@ -573,29 +555,28 @@ class KMA:
             fx: fitness value of komodo x (float) with shape (1,1)
 
         Returns:
-            Returns a new position of the individual x and its fitness value
+            Returns a new position of the individual x (new_x) and its fitness value (new_fx)
 
         Raises:
             ValueError: temp_x, or temp_fx array shape is not correct
 
 
         """
-
-        temp_x = np.ones((1, self.nvar)) * np.copy(x)
+        temp_x = np.ones((1, self.nvar)) * x.copy()
         max_step = self.mut_radius * (self.ra - self.rb)
 
         for ii in range(self.nvar):
             if np.random.rand() < self.mut_rate:
                 temp_x[:, ii] = (
                     x[:, ii]
-                    + (2 * np.random.rand() - 1) * self.mut_radius * max_step[0, ii]
+                    + ((2 * np.random.rand()) - 1) * self.mut_radius * max_step[0, ii]
                 )
 
         if temp_x.shape != (1, self.nvar):
             temp_x = temp_x.reshape(1, -1)
             if temp_x.shape != (1, self.nvar):
                 raise ValueError(
-                    "temp_x shape in adding_pop is not correct (1,self.nvar)"
+                    f"temp_x shape with a shape of {temp_x.shape} in reposition is not correct. Must be (1,self.nvar)"
                 )
 
         temp_x = self.trimr(temp_x)
@@ -605,7 +586,9 @@ class KMA:
         if temp_fx.shape != (1, 1):
             temp_fx = temp_fx.reshape(1, -1)
             if temp_fx.shape != (1, 1):
-                raise ValueError("temp_fx shape in adding_pop is not correct (1,1)")
+                raise ValueError(
+                    f"temp_fx with a shape of {temp_fx.shape} in reposition is not correct. Must be (1,1)"
+                )
 
         if temp_fx < fx:  # TempFX is better than the original FX
             new_x = temp_x
@@ -623,14 +606,14 @@ class KMA:
         Replacement: sort the old and new populations and select the best ones
 
         Parameters:
-        X  : old population of LX individuals with the shape of (1,nvar)
-        FX : old fitness with the shape of (1,nvar)
-        Y  : new population with the shape of (1,nvar)
-        FY : new fitness with the shape of (1,nvar)
+        x  : old population of LX individuals with the shape of (1,nvar)
+        fx : old fitness with the shape of (1,nvar)
+        y  : new population with the shape of (1,nvar)
+        fy : new fitness with the shape of (1,nvar)
 
         Returns:
-        Z  : survivor of LX individuals with the shape of (1,nvar)
-        FZ : survivor fitness with the shape of (1,nvar)
+        z  : survivor of LX individuals with the shape of (1,nvar)
+        fz : survivor fitness with the shape of (1,nvar)
 
         Raises:
 
@@ -642,10 +625,11 @@ class KMA:
 
         # Sort all fitness values and get sorted indices
         sorted_ind = np.argsort(fxfy[0])
+        sorted_value = np.sort(fxfy)
 
         # Select the best individuals
         z = np.copy(xy[sorted_ind[:lx], :])
-        fz = np.copy(fxfy[:, sorted_ind[:lx]])
+        fz = np.copy(sorted_value[:, :lx])
 
         return z, fz
 
@@ -654,7 +638,7 @@ class KMA:
         Limit the values into the given dimensional boundaries
 
         Params:
-            x: array shape (1,nvar) of Komodo individuals
+            x: array of shape (n,nvar) of Komodo individuals
 
         Returns:
             Returns new array of komodo individuals with shape (1,nvar) but have trimmed to dimensional boundaries
@@ -662,7 +646,18 @@ class KMA:
         Raises:
 
         """
-        return np.clip(np.copy(x), self.rb, self.ra)
+
+        # # x -> clipped
+        # # transfer
+        # def wrapper(x):
+        #     # wrap a real value to its binary
+        #     # 1. pure KMA
+        #     # 2. Regular binary wrapper -> v-shaped and s-shaped
+        #     # 3. Time variant S-shaped
+
+        #     return 0
+
+        return np.clip(x, self.rb, self.ra)
 
     def run(
         self,
@@ -684,7 +679,7 @@ class KMA:
 
         self.fx, self.pop = self.fx[:, index_fx], self.pop[index_fx, :]
 
-        self.one_elit_fx = self.fx[0, 0]
+        self.one_elit_fx = self.fx[0, 0]  # the best so-far
 
         #
         #
@@ -725,7 +720,9 @@ class KMA:
             self.female_fx = np.copy(self.fx[:, self.num_BM]).reshape(1, -1)
 
             if self.female.shape != (1, self.nvar):
-                raise ValueError("Female shape is incorrect")
+                raise ValueError(
+                    f"Female with a shape of {self.female.shape} in main function first stage is incorrect. Must be (1,nvar)"
+                )
 
             self.small_males = np.copy(self.pop[self.num_BM + 1 :, :])
             self.small_males_fx = np.copy(self.fx[:, self.num_BM + 1 :])
@@ -735,13 +732,15 @@ class KMA:
             # move small males
             self.move_small_males_first_stage()
 
-            self.pop = np.vstack((self.big_males, self.female, self.small_males))
+            self.pop = np.vstack((self.big_males, self.female, self.small_males)).copy()
 
             # make sure female_fx has the same dimension
             if self.female_fx.shape != (1, 1):
                 self.female_fx = self.female_fx.reshape(1, -1)
                 if self.female_fx.shape != (1, 1):
-                    raise ValueError("Female shape is incorrect")
+                    raise ValueError(
+                        f"Female_fx with a shape of {self.female_fx.shape} in main function first stage is incorrect. Must be (1,1)"
+                    )
 
             self.fx = np.hstack(
                 (self.big_males_fx, self.female_fx, self.small_males_fx)
@@ -749,13 +748,16 @@ class KMA:
 
             index_fx = np.argsort(self.fx[0])
 
-            self.fx, self.pop = self.fx[:, index_fx], self.pop[index_fx, :]
+            self.fx, self.pop = (
+                self.fx[:, index_fx].copy(),
+                self.pop[index_fx, :].copy(),
+            )
 
-            best_indiv = self.pop[0, :]
-            opt_val = self.fx[0, 0]
+            best_indiv = self.pop[0, :].copy()
+            opt_val = np.min(self.fx[0]).copy()
 
             fopt = np.hstack((fopt, opt_val))
-            fmean = np.hstack((fmean, np.mean(self.fx)))
+            fmean = np.hstack((fmean, np.mean(self.fx[0])))
             evo_pop_size = np.hstack((evo_pop_size, self.pop_size))
 
             if opt_val < self.one_elit_fx:
@@ -799,53 +801,59 @@ class KMA:
             cons_pop_fx = np.zeros((1, cons_pop.shape[0]))
 
             for i in range(cons_pop.shape[0]):
-                cons_pop_fx[:, [i]] = self.evaluation(cons_pop[[i], :])
+                individu = cons_pop[i, :]
+                result = self.evaluation(individu)
+                cons_pop_fx[:, i] = result
 
-            self.pop = np.copy(np.vstack((first_stage_pop, cons_pop)))
+            self.pop = np.vstack((first_stage_pop, cons_pop)).copy()
             self.pop_size = self.pop.shape[0]
-            self.fx = np.copy(np.hstack((first_stage_pop_fx, cons_pop_fx)))
-            self.one_elit_fx = np.copy(np.min(self.fx))
+            self.fx = np.hstack((first_stage_pop_fx, cons_pop_fx)).copy()
+            self.one_elit_fx = np.min(self.fx[0])
 
             while num_eva < self.max_num_eva:
                 ada_pop_size = self.pop.shape[0]
-                self.all_hq = np.empty((ada_pop_size, self.nvar))
-                self.all_hq_fx = np.empty((1, ada_pop_size))
+                self.all_hq = np.zeros((ada_pop_size, self.nvar))
+                self.all_hq_fx = np.zeros((1, ada_pop_size))
 
                 for ind in range(0, ada_pop_size, swarm_size):
-                    micro_swarm = np.copy(self.pop[ind : ind + swarm_size - 1, :])
-                    micro_swarm_fx = np.copy(self.fx[:, ind : ind + swarm_size - 1])
+                    micro_swarm = np.copy(self.pop[ind : ind + swarm_size, :])
+                    micro_swarm_fx = np.copy(self.fx[:, ind : ind + swarm_size])
 
-                    index_fx = np.argsort(micro_swarm_fx).flatten()
+                    index_fx = np.argsort(micro_swarm_fx[0])
                     micro_swarm = np.copy(micro_swarm[index_fx, :])
 
                     micro_swarm_fx = np.copy(micro_swarm_fx[:, index_fx])
 
                     self.all_hq = np.copy(
-                        np.vstack((self.all_hq, micro_swarm[0 : self.num_BM, :]))
+                        np.vstack((self.all_hq, micro_swarm[: self.num_BM, :]))
                     )
                     self.all_hq_fx = np.copy(
-                        np.hstack((self.all_hq_fx, micro_swarm_fx[:, 0 : self.num_BM]))
+                        np.hstack((self.all_hq_fx, micro_swarm_fx[:, : self.num_BM]))
                     )
 
                 for ind in range(0, ada_pop_size, swarm_size):
                     micro_swarm = np.copy(self.pop[ind : ind + swarm_size, :])
                     micro_swarm_fx = np.copy(self.fx[:, ind : ind + swarm_size])
 
-                    index_fx = np.argsort(micro_swarm_fx).flatten()
+                    index_fx = np.argsort(micro_swarm_fx[0])
                     micro_swarm = np.copy(micro_swarm[index_fx, :])
                     micro_swarm_fx = np.copy(micro_swarm_fx[:, index_fx])
 
                     self.big_males = np.copy(micro_swarm[: self.num_BM, :])
-                    self.big_males_fx = np.copy(self.fx[:, : self.num_BM])
+                    self.big_males_fx = np.copy(micro_swarm_fx[:, : self.num_BM])
 
                     self.female = np.copy(micro_swarm[self.num_BM, :]).reshape(1, -1)
-                    self.female_fx = np.copy(self.fx[:, self.num_BM]).reshape(1, -1)
+                    self.female_fx = np.copy(micro_swarm_fx[:, self.num_BM]).reshape(
+                        1, -1
+                    )
 
                     if self.female.shape != (1, self.nvar):
-                        raise ValueError("Female shape is incorrect")
+                        raise ValueError(
+                            f"Female shape with a shape of {self.female.shape} is incorrect. Must be (1,{self.nvar})"
+                        )
 
                     self.small_males = np.copy(micro_swarm[self.num_BM + 1 :, :])
-                    self.small_males_fx = np.copy(self.fx[:, self.num_BM + 1 :])
+                    self.small_males_fx = np.copy(micro_swarm_fx[:, self.num_BM + 1 :])
 
                     self.move_big_males_female_second_stage()
                     self.move_small_males_second_stage()
@@ -856,22 +864,25 @@ class KMA:
                     )
 
                     # resulted new population
-                    self.pop[ind : ind + swarm_size, :] = np.copy(
-                        np.vstack((self.big_males, self.female, self.small_males))
-                    )
-                    self.fx[ind : ind + swarm_size] = np.copy(
+                    self.pop[ind : ind + swarm_size, :] = np.vstack(
                         (
-                            np.hstack(
-                                (self.big_males_fx, self.female_fx, self.small_males_fx)
-                            )
+                            np.copy(self.big_males),
+                            np.copy(self.female),
+                            np.copy(self.small_males),
+                        )
+                    )
+
+                    self.fx[:, ind : ind + swarm_size] = np.hstack(
+                        (
+                            np.copy(self.big_males_fx),
+                            np.copy(self.female_fx),
+                            np.copy(self.small_males_fx),
                         )
                     )
 
                     num_eva += swarm_size
 
-                    ind_min = np.argmin(self.fx[0])
-
-                    opt_val = self.fx[0, ind_min]
+                    opt_val = np.min(self.fx[0])
 
                     if opt_val <= self.fthreshold_fx:
                         break
@@ -881,11 +892,11 @@ class KMA:
                 self.pop = np.copy(self.pop[ind, :])
                 self.fx = np.copy(self.fx[:, ind])
 
-                ind_min = np.argmin(self.fx[0])
-                best_indiv = self.pop[ind_min, :]
-                opt_val = self.fx[0, ind_min]
-                fopt = np.hstack((fopt, opt_val))
-                fmean = np.hstack((fmean, np.mean(self.fx)))
+                best_indiv = self.pop[np.argmin(self.fx[0]), :]
+
+                opt_val = np.min(self.fx[0])
+                fopt = np.hstack((fopt, np.copy(opt_val)))
+                fmean = np.hstack((fmean, np.mean(self.fx[0])))
 
                 # if roundup(opt_val) <= ftresholdfx
                 if opt_val <= self.fthreshold_fx:
@@ -894,14 +905,18 @@ class KMA:
                 ######################################
                 # Self-adaptation of population size #
                 ######################################
+                print(f"Current elit fx: {self.one_elit_fx}")
+                print(f"Current optimal value: {opt_val}")
 
                 if opt_val < self.one_elit_fx:
                     gen_improve += 1
                     gen_stagnan = 0
                     self.one_elit_fx = opt_val
+                    print("Improvement detected")
                 else:
                     gen_stagnan += 1
                     gen_improve = 0
+                    print("Stagnation detected")
 
                 # If consecutive fitness values show an improvement
                 if gen_improve > max_gen_improve:
@@ -909,7 +924,7 @@ class KMA:
                     if ada_pop_size < self.min_ada_pop_size:
                         ada_pop_size = self.min_ada_pop_size
 
-                    sorted_ind = np.argsort(self.fx)
+                    sorted_ind = np.argsort(self.fx[0])
                     sorted_pop = self.pop[sorted_ind, :]
                     self.pop = sorted_pop[:ada_pop_size, :]
                     self.fx = self.fx[:, sorted_ind]
@@ -935,15 +950,15 @@ class KMA:
                                 best_indiv
                             )
 
-                        self.pop = np.vstack((self.pop, new_pop))
-                        self.fx = np.hstack((self.fx, new_pop_fx))
+                        self.pop = np.vstack((self.pop, new_pop)).copy()
+                        self.fx = np.hstack((self.fx, new_pop_fx)).copy()
 
                         num_eva += num_add_pop
                     else:  # no adding population
                         for nn in range(self.pop.shape[0]):
                             self.pop[nn, :], self.fx[:, nn] = self.reposition(
-                                self.pop[nn, :].reshape(1, -1),
-                                self.fx[:, nn].reshape(1, -1),
+                                np.copy(self.pop[nn, :]).reshape(1, -1),
+                                np.copy(self.fx[:, nn]).reshape(1, -1),
                             )
                         num_eva += self.pop.shape[0]
                     gen_stagnan = 0
