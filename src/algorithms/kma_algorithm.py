@@ -905,18 +905,14 @@ class KMA:
                 ######################################
                 # Self-adaptation of population size #
                 ######################################
-                print(f"Current elit fx: {self.one_elit_fx}")
-                print(f"Current optimal value: {opt_val}")
 
                 if opt_val < self.one_elit_fx:
                     gen_improve += 1
                     gen_stagnan = 0
                     self.one_elit_fx = opt_val
-                    print("Improvement detected")
                 else:
                     gen_stagnan += 1
                     gen_improve = 0
-                    print("Stagnation detected")
 
                 # If consecutive fitness values show an improvement
                 if gen_improve > max_gen_improve:
