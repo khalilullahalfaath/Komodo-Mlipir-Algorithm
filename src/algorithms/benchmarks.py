@@ -240,13 +240,22 @@ class Benchmark:
 
             case 13:
                 # Penalized2
-                a, k, m = 5, 100, 4
+                x = x.copy()
+                if x.ndim == 1:
+                    x = x.reshape(1, -1)
+                a = 5
+                k = 100
+                m = 4
                 return 0.1 * (
-                    np.sin(3 * np.pi * x[0]) ** 2
-                    + np.sum((x[:-1] - 1) ** 2 * (1 + np.sin(3 * np.pi * x[1:]) ** 2))
-                    + (x[-1] - 1) ** 2 * (1 + np.sin(2 * np.pi * x[-1]) ** 2)
+                    (np.sin(3 * np.pi * x[:, 0])) ** 2
+                    + np.sum(
+                        ((x[:, :-1] - 1) ** 2)
+                        * (1 + (np.sin(3 * np.pi * x[:, 1:])) ** 2),
+                        axis=1,
+                    )
+                    + ((x[:, -1] - 1) ** 2) * (1 + (np.sin(2 * np.pi * x[:, -1])) ** 2)
                 ) + np.sum(
-                    k * ((x - a) ** m) * (x > a) + k * ((-x - a) ** m) * (x < -a)
+                    k * ((x - a) ** m) * (x > a) + k * ((-x - a) ** m) * (x < (-a))
                 )
 
             case 14:
