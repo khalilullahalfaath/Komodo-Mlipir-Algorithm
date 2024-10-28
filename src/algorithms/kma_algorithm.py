@@ -873,7 +873,6 @@ class KMA:
                         # Directly assign if within bounds
                         self.all_hq[ind : ind + self.num_BM, :] = np.copy(self.big_males)
 
-                    # Similarly for self.all_hq_fx
                     if ind + self.num_BM > self.all_hq_fx.shape[1]:
                         # Extend self.all_hq_fx horizontally
                         self.all_hq_fx = np.hstack((self.all_hq_fx, self.big_males_fx))

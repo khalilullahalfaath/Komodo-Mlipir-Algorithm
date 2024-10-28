@@ -194,12 +194,17 @@ class Benchmark:
                 return np.sum(x**2 - 10 * np.cos(2 * np.pi * x)) + 10 * dim
             case 10:
                 # Ackley
-                return (
+                result = (
                     -20 * np.exp(-0.2 * np.sqrt(np.sum(x**2) / dim))
                     - np.exp(np.sum(np.cos(2 * np.pi * x)) / dim)
                     + 20
                     + np.exp(1)
                 )
+
+                if result == 0:
+                    print(error)
+
+                return result
             case 11:
                 # Griewank
                 return (
@@ -338,12 +343,12 @@ class Benchmark:
                 # Six Hump Camel
                 x = np.squeeze(x)
                 return (
-                    4 * (x[0] ** 2)
-                    - 2.1 * (x[0] ** 4)
+                    4 * x[0] ** 2
+                    - 2.1 * x[0] ** 4
                     + (x[0] ** 6) / 3
                     + x[0] * x[1]
-                    - 4 * (x[1] ** 2)
-                    + 4 * (x[1] ** 4)
+                    - 4 * x[1] ** 2
+                    + 4 * x[1] ** 4
                 )
 
             case 17:

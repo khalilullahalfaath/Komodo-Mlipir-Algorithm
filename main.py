@@ -28,7 +28,7 @@ class KMADriver:
         print(f"Number of evaluations = {num_eva}")
         print(f"Processing time (sec) = {proc_time:.10f}")
         print(f"Global optimum        = {self.kma.fthreshold_fx:.10f}")
-        print(f"Actual solution       = {opt_val:.10f}")
+        print(f"Actual solution       = {opt_val}")
         print(f"Best individual       = {best_indiv}")
 
     def visualize_convergence(self, fopt, fmean):
@@ -65,7 +65,7 @@ class KMADriver:
 
 
 if __name__ == "__main__":
-    function_id = 5
+    function_id = 10
     dimension = 50
     max_num_eva = 25000
     pop_size = 5
