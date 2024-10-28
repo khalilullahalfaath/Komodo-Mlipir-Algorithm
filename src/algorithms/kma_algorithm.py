@@ -22,6 +22,7 @@ class KMA:
         self.nvar, self.ub, self.lb, self.fthreshold_fx = Benchmark.get_function(
             self.dimension, self.function_id
         )
+
         self.ra = np.ones((1, self.nvar)) * self.ub
         self.rb = np.ones((1, self.nvar)) * self.lb
 
@@ -43,6 +44,8 @@ class KMA:
 
         self.pop = None
         self.fx = None
+
+        self.gen = 0
 
     def evaluation(self, x: np.ndarray) -> float:
         """
@@ -120,7 +123,7 @@ class KMA:
         temp_small_males_fx = np.copy(self.big_males_fx)
 
         for ss in range(temp_small_males.shape[0]):
-            max_fol_hq = np.random.randint(1, 3)  # generate random [1,2]
+            max_fol_hq = np.random.randint(1, 2)
             vm = np.zeros((1, self.nvar))
             rhq = np.random.permutation(hq.shape[0])
             fol_hq = 0
@@ -200,10 +203,8 @@ class KMA:
         """
 
         if self.all_hq.shape[0] != 0:
-            global_hq = np.vstack((np.copy(self.big_males), np.copy(self.all_hq)))
-            global_hq_fx = np.hstack(
-                (np.copy(self.big_males_fx), np.copy(self.all_hq_fx))
-            )
+            global_hq = np.vstack((self.big_males, self.all_hq)).copy()
+            global_hq_fx = np.hstack((self.big_males_fx, self.all_hq_fx)).copy()
         else:
             global_hq = np.copy(self.big_males)
             global_hq_fx = np.copy(self.big_males_fx)
@@ -212,9 +213,9 @@ class KMA:
         temp_small_males_fx = np.copy(self.big_males_fx)
 
         for ss in range(temp_small_males.shape[0]):
-            max_fol_hq = np.random.randint(1, 3)
             vm = np.zeros((1, self.nvar))
             rhq = np.random.permutation(global_hq.shape[0])
+            max_fol_hq = np.random.randint(1, 3)
             fol_hq = 0
 
             for fs in range(len(rhq)):
@@ -224,17 +225,18 @@ class KMA:
                     if (global_hq_fx[:, ind] < temp_small_males_fx[:, ss]) or (
                         np.random.rand() < 0.5
                     ):
-                        vm += np.random.rand() * (
-                            global_hq[ind, :] - temp_small_males[ss, :]
+                        vm = vm + (
+                            np.random.rand()
+                            * (global_hq[ind, :] - temp_small_males[ss, :])
                         )
                     else:
-                        vm += np.random.rand() * (
-                            temp_small_males[ss, :] - global_hq[ind, :]
+                        vm = vm + (
+                            np.random.rand()
+                            * (temp_small_males[ss, :] - global_hq[ind, :])
                         )
-
-                    fol_hq += 1
-                    if fol_hq >= max_fol_hq:
-                        break
+                fol_hq += 1
+                if fol_hq >= max_fol_hq:
+                    break
 
             new_big_males = temp_small_males[ss, :].copy() + vm.copy()
             new_big_males = self.trimr(new_big_males.copy())
@@ -693,7 +695,7 @@ class KMA:
         # Improve rate to examine the benchmark function
         num_eva = 0
         # Number of evalutions
-        gen = 0
+        self.gen = 0
         # Generation
         max_gen_exam1 = 100
         # Maximum generation of the first examination
@@ -709,8 +711,8 @@ class KMA:
         gen_improve = 0
         # Generation counter to check the improvement condition
 
-        while gen < max_gen_exam2:
-            gen += 1
+        while self.gen < max_gen_exam2:
+            self.gen += 1
             num_eva += self.pop_size
 
             self.big_males = np.copy(self.pop[: self.num_BM, :])
@@ -762,14 +764,14 @@ class KMA:
 
             if opt_val < self.one_elit_fx:
                 gen_improve += 1
-                improve_rate = gen_improve / gen
+                improve_rate = gen_improve / self.gen
                 self.one_elit_fx = opt_val
 
             if opt_val <= self.fthreshold_fx:
                 is_global = 1
                 break
 
-            if gen == max_gen_exam1:
+            if self.gen == max_gen_exam1:
                 if improve_rate < 0.5:
                     is_global = 0
                     break
@@ -812,8 +814,9 @@ class KMA:
 
             while num_eva < self.max_num_eva:
                 ada_pop_size = self.pop.shape[0]
-                self.all_hq = np.zeros((ada_pop_size, self.nvar))
-                self.all_hq_fx = np.zeros((1, ada_pop_size))
+
+                self.all_hq = np.array([]).reshape(0, self.nvar)
+                self.all_hq_fx = np.array([]).reshape(0, self.nvar)
 
                 for ind in range(0, ada_pop_size, swarm_size):
                     micro_swarm = np.copy(self.pop[ind : ind + swarm_size, :])
@@ -824,12 +827,16 @@ class KMA:
 
                     micro_swarm_fx = np.copy(micro_swarm_fx[:, index_fx])
 
-                    self.all_hq = np.copy(
-                        np.vstack((self.all_hq, micro_swarm[: self.num_BM, :]))
-                    )
-                    self.all_hq_fx = np.copy(
-                        np.hstack((self.all_hq_fx, micro_swarm_fx[:, : self.num_BM]))
-                    )
+                    # Add new values
+                    new_hq = micro_swarm[: self.num_BM, :]
+                    new_hq_fx = micro_swarm_fx[:, : self.num_BM]
+
+                    if self.all_hq.shape[0] == 0:
+                        self.all_hq = new_hq
+                        self.all_hq_fx = new_hq_fx
+                    else:
+                        self.all_hq = np.vstack((self.all_hq, new_hq))
+                        self.all_hq_fx = np.hstack((self.all_hq_fx, new_hq_fx))
 
                 for ind in range(0, ada_pop_size, swarm_size):
                     micro_swarm = np.copy(self.pop[ind : ind + swarm_size, :])
@@ -858,10 +865,21 @@ class KMA:
                     self.move_big_males_female_second_stage()
                     self.move_small_males_second_stage()
 
-                    self.all_hq[ind : ind + self.num_BM, :] = np.copy(self.big_males)
-                    self.all_hq_fx[:, ind : ind + self.num_BM] = np.copy(
-                        self.big_males_fx
-                    )
+                    # Check if self.all_hq needs resizing
+                    if ind + self.num_BM > self.all_hq.shape[0]:
+                        # Extend self.all_hq by concatenating the new big males
+                        self.all_hq = np.vstack((self.all_hq, self.big_males))
+                    else:
+                        # Directly assign if within bounds
+                        self.all_hq[ind : ind + self.num_BM, :] = np.copy(self.big_males)
+
+                    # Similarly for self.all_hq_fx
+                    if ind + self.num_BM > self.all_hq_fx.shape[1]:
+                        # Extend self.all_hq_fx horizontally
+                        self.all_hq_fx = np.hstack((self.all_hq_fx, self.big_males_fx))
+                    else:
+                        # Directly assign if within bounds
+                        self.all_hq_fx[:, ind : ind + self.num_BM] = np.copy(self.big_males_fx)
 
                     # resulted new population
                     self.pop[ind : ind + swarm_size, :] = np.vstack(
@@ -964,7 +982,7 @@ class KMA:
                 self.pop = self.pop[rand_ind, :]
 
                 evo_pop_size = np.hstack((evo_pop_size, ada_pop_size))
-                gen += 1
+                self.gen += 1
         # best_indiv = np.zeros(self.dimension)
         # opt_val = 0.0
         # num_eva = self.max_num_eva
