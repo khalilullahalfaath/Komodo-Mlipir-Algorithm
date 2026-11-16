@@ -72,3 +72,17 @@ def test_hooks_allow_subclass():
 
     r = Shifted(max_eval_number=3000, seed=0).run()
     assert r["opt_val"] < 1e-3 and np.allclose(r["best_individual"], 1.0, atol=1e-2)
+
+
+def test_fitness_hook_sees_progress():
+    seen = []
+
+    class Probe(KMA):
+        def fitness(self, x):
+            seen.append(self.num_eva / self.max_eval_number)
+            return super().fitness(x)
+
+    Probe(function_id=10, dimension=10, max_eval_number=3000, seed=0).run()
+    assert seen[0] == 0  # initial population is evaluated before any counting
+    assert all(a <= b for a, b in zip(seen, seen[1:]))  # progress never goes backwards
+    assert 0.9 < max(seen) <= 1.01  # and reaches the end of the budget

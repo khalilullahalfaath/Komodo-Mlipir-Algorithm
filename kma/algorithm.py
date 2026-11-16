@@ -167,12 +167,16 @@ class KMA:
 
         # ---- first stage: is the function simple or complex? ----
         mlipir_rate = (self.var_num - 1) / self.var_num
-        is_global, improve_rate, num_eva, gen, gen_improve = False, 0.0, 0, 0, 0
+        is_global, improve_rate, gen, gen_improve = False, 0.0, 0, 0
+        # evaluations counted so far, as in the MATLAB code: added per generation / swarm,
+        # before its individuals are evaluated, and without the initial population.
+        # `fitness` hooks can use num_eva / max_eval_number as the search progress t/T.
+        self.num_eva = 0
         fopt, fmean, evo_pop_size = [], [], []
 
         while gen < self.max_gen_exam2:
             gen += 1
-            num_eva += n
+            self.num_eva += n
             bm, bm_fx = pop[:nbm], fx[:nbm]
             female, female_fx = pop[nbm], fx[nbm]
             sm = pop[nbm + 1:]
@@ -203,7 +207,7 @@ class KMA:
                 break
 
         # ---- second stage: self-adaptive population size ----
-        if not is_global and num_eva <= self.max_eval_number:
+        if not is_global and self.num_eva <= self.max_eval_number:
             swarm = len(pop)
             nbm = swarm // 2
             step = swarm  # increment / decrement of the adaptive population size
@@ -216,7 +220,7 @@ class KMA:
             fx = np.concatenate([fx, self._evaluate_all(cons)])
             one_elit = fx.min()
 
-            while num_eva < self.max_eval_number:
+            while self.num_eva < self.max_eval_number:
                 ada = len(pop)
                 n_swarms = ada // swarm
 
@@ -249,7 +253,7 @@ class KMA:
                     all_hq_fx[k * nbm:(k + 1) * nbm] = bm_fx
                     pop[sl] = np.vstack([bm, female, sm])
                     fx[sl] = np.concatenate([bm_fx, [female_fx], sm_fx])
-                    num_eva += swarm
+                    self.num_eva += swarm
                     if fx.min() <= thr:
                         break
 
@@ -286,11 +290,11 @@ class KMA:
                         added = [self._add_individual(best) for _ in range(ada - old)]
                         pop = np.vstack([pop, [a[0] for a in added]])
                         fx = np.concatenate([fx, [a[1] for a in added]])
-                        num_eva += ada - old
+                        self.num_eva += ada - old
                     else:
                         for j in range(len(pop)):
                             pop[j], fx[j] = self._reposition(pop[j], fx[j])
-                        num_eva += len(pop)
+                        self.num_eva += len(pop)
                     gen_stagnan = 0
 
                 perm = np.random.permutation(len(fx))
@@ -301,7 +305,7 @@ class KMA:
         return {
             "best_individual": best,
             "opt_val": opt_val,
-            "num_eva": num_eva,
+            "num_eva": self.num_eva,
             "fopt": np.array(fopt),
             "fmean": np.array(fmean),
             "proc_time": time.time() - start,
