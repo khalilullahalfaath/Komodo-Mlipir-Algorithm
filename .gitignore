@@ -2,3 +2,4 @@ __pycache__/
 komodo_mlipir-1.0.1/
 comparison/m_orig/
 comparison/m_fix/
+*.egg-info/

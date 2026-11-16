@@ -1,8 +1,10 @@
-import numpy as np
+from pathlib import Path
 
-from benchmark import evaluate
-from get_function import get_function
-from kma import KMA
+import numpy as np
+import scipy.io as sio
+
+from kma import KMA, evaluate
+from kma import get_function
 
 
 def test_known_optima():
@@ -40,3 +42,33 @@ def test_kma_fixed_dim_and_stage2():
     assert r["opt_val"] < 5
     r = KMA(function_id=10, dimension=10, seed=0).run()
     assert r["evo_pop_size"].max() > 5  # reached the self-adaptive stage
+
+
+def test_initial_population_matches_matlab():
+    # pop.mat: initial population of the MATLAB code for F5 (bounds +-30), dimension 50
+    pop = KMA(function_id=5, dimension=50).generate_population(5)
+    matlab = sio.loadmat(Path(__file__).parent / "data" / "pop.mat")["Pop"]
+    assert pop.shape == matlab.shape
+    np.testing.assert_allclose(np.sort(pop.ravel())[::50], np.sort(matlab.ravel())[::50], atol=1.0)
+
+
+def test_initial_fitness_matches_matlab():
+    # fitness of an F1 initial population (bounds +-100) from a MATLAB run
+    kma = KMA(function_id=1, dimension=50)
+    matlab_fx = np.array([4.788615799813203e05, 4.795563179041033e05, 4.819387031017045e05,
+                          4.795778390078847e05, 4.816324607430795e05])
+    fx = np.sort([kma.fitness(p) for p in kma.generate_population(5)])
+    np.testing.assert_allclose(fx, np.sort(matlab_fx), rtol=0.01)
+
+
+def test_hooks_allow_subclass():
+    class Shifted(KMA):  # a different problem through the hooks only
+        def _setup_problem(self):
+            self.var_num, self.optimum_value = 4, 0.0
+            self.lower_bound, self.upper_bound = np.full(4, -5.0), np.full(4, 5.0)
+
+        def fitness(self, x):
+            return float(np.sum((x - 1.0) ** 2))
+
+    r = Shifted(max_eval_number=3000, seed=0).run()
+    assert r["opt_val"] < 1e-3 and np.allclose(r["best_individual"], 1.0, atol=1e-2)

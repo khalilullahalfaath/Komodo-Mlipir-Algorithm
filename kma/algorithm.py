@@ -5,8 +5,8 @@ import time
 
 import numpy as np
 
-from benchmark import evaluate
-from get_function import get_function
+from .benchmark import evaluate
+from .get_function import get_function
 
 
 def levy(n, m, beta):
@@ -20,27 +20,46 @@ def levy(n, m, beta):
 
 
 class KMA:
+    """KMA for minimisation. Subclasses (e.g. a binary / feature-selection variant) override
+    `_setup_problem`, `fitness` and `trim`; everything else is shared. Attributes a subclass
+    needs inside those hooks must be set before calling `super().__init__`."""
+
     mut_rate = 0.5  # probability of the female mutation
     mut_radius = 0.5  # radius limiting the female mutation step
 
     def __init__(
-        self, function_id=1, dimension=50, max_eval_number=25000, population_size=5,
+        self,
+        function_id=1,
+        dimension=50,
+        max_eval_number=25000,
+        population_size=5,
+        min_adaptive_size=4,  # min adaptive population = population_size * this
+        max_adaptive_size=40,  # max adaptive population = population_size * this
+        max_gen_exam1=100,  # first stage: generation at which the improve rate is checked
+        max_gen_exam2=1000,  # first stage: maximum number of generations
         seed=None,
     ) -> None:
         self.function_id = function_id
         self.dimension = dimension
         self.max_eval_number = max_eval_number
         self.pop_size = population_size
-        self.min_adaptive_pop_size = population_size * 4
-        self.max_adaptive_pop_size = population_size * 40
+        self.min_adaptive_pop_size = population_size * min_adaptive_size
+        self.max_adaptive_pop_size = population_size * max_adaptive_size
+        self.max_gen_exam1 = max_gen_exam1
+        self.max_gen_exam2 = max_gen_exam2
         if seed is not None:
             np.random.seed(seed)
+        self._setup_problem()
 
-        ub, lb, self.optimum_value, self.var_num = get_function(function_id, dimension)
+    # ---------- hooks ----------
+    def _setup_problem(self):
+        """Set var_num, lower_bound, upper_bound and optimum_value (the stop threshold)."""
+        ub, lb, self.optimum_value, self.var_num = get_function(
+            self.function_id, self.dimension
+        )
         self.upper_bound = np.full(self.var_num, float(ub))
         self.lower_bound = np.full(self.var_num, float(lb))
 
-    # ---------- helpers ----------
     def fitness(self, x):
         return evaluate(self.function_id, x)
 
@@ -151,7 +170,7 @@ class KMA:
         is_global, improve_rate, num_eva, gen, gen_improve = False, 0.0, 0, 0, 0
         fopt, fmean, evo_pop_size = [], [], []
 
-        while gen < 1000:
+        while gen < self.max_gen_exam2:
             gen += 1
             num_eva += n
             bm, bm_fx = pop[:nbm], fx[:nbm]
@@ -180,7 +199,7 @@ class KMA:
             if opt_val <= thr:
                 is_global = True
                 break
-            if gen == 100 and improve_rate < 0.5:
+            if gen == self.max_gen_exam1 and improve_rate < 0.5:
                 break
 
         # ---- second stage: self-adaptive population size ----
@@ -201,7 +220,8 @@ class KMA:
                 ada = len(pop)
                 n_swarms = ada // swarm
 
-                # collect the big males of every micro-swarm
+                # collect the big males of every micro-swarm (row k*nbm; the MATLAB original
+                # indexes with `ind`, which pads AllHQ with zero rows)
                 all_hq = np.zeros((n_swarms * nbm, self.var_num))
                 all_hq_fx = np.zeros(n_swarms * nbm)
                 for k in range(n_swarms):
@@ -288,12 +308,3 @@ class KMA:
             "evo_pop_size": np.array(evo_pop_size),
         }
 
-
-if __name__ == "__main__":
-    kma = KMA(function_id=1, dimension=50, seed=0)
-    r = kma.run()
-    print(f"Function F{kma.function_id}, dim {kma.dimension}")
-    print(f"Evaluations : {r['num_eva']}")
-    print(f"Time (s)    : {r['proc_time']:.2f}")
-    print(f"Global opt  : {kma.optimum_value}")
-    print(f"Found       : {r['opt_val']:.10g}")

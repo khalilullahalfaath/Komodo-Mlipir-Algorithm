@@ -5,8 +5,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from benchmark import evaluate
-from get_function import get_function
+from kma import evaluate
+from kma import get_function
 
 rng = np.random.default_rng(0)
 rows = []
