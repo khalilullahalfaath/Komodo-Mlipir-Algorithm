@@ -82,7 +82,7 @@ def test_fitness_hook_sees_progress():
             seen.append(self.num_eva / self.max_eval_number)
             return super().fitness(x)
 
-    Probe(function_id=10, dimension=10, max_eval_number=3000, seed=0).run()
+    Probe(function_id=10, dimension=10, seed=0).run()  # default budget 25000
     assert seen[0] == 0  # initial population is evaluated before any counting
     assert all(a <= b for a, b in zip(seen, seen[1:]))  # progress never goes backwards
     assert 0.9 < max(seen) <= 1.01  # and reaches the end of the budget

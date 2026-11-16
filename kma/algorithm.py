@@ -49,6 +49,7 @@ class KMA:
         self.max_gen_exam2 = max_gen_exam2
         if seed is not None:
             np.random.seed(seed)
+        self.num_eva = 0  # see run(); defined early so fitness hooks can always read it
         self._setup_problem()
 
     # ---------- hooks ----------
@@ -156,6 +157,10 @@ class KMA:
     # ---------- main loop ----------
     def run(self):
         start = time.time()
+        # evaluations counted so far, as in the MATLAB code: added per generation / swarm,
+        # before its individuals are evaluated, and without the initial population.
+        # `fitness` hooks can use num_eva / max_eval_number as the search progress t/T.
+        self.num_eva = 0
         n, thr = self.pop_size, self.optimum_value
 
         pop = self.generate_population(n)
@@ -168,10 +173,6 @@ class KMA:
         # ---- first stage: is the function simple or complex? ----
         mlipir_rate = (self.var_num - 1) / self.var_num
         is_global, improve_rate, gen, gen_improve = False, 0.0, 0, 0
-        # evaluations counted so far, as in the MATLAB code: added per generation / swarm,
-        # before its individuals are evaluated, and without the initial population.
-        # `fitness` hooks can use num_eva / max_eval_number as the search progress t/T.
-        self.num_eva = 0
         fopt, fmean, evo_pop_size = [], [], []
 
         while gen < self.max_gen_exam2:
