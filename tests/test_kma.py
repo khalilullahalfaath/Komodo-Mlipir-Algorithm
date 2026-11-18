@@ -86,3 +86,18 @@ def test_fitness_hook_sees_progress():
     assert seen[0] == 0  # initial population is evaluated before any counting
     assert all(a <= b for a, b in zip(seen, seen[1:]))  # progress never goes backwards
     assert 0.9 < max(seen) <= 1.01  # and reaches the end of the budget
+
+
+def test_adaptive_step():
+    # small adaptive range (20-40) and a short stage 1, so the stage-2 size really moves
+    kw = dict(function_id=10, dimension=10, max_eval_number=8000, population_size=10, min_adaptive_size=2,
+              max_adaptive_size=4, max_gen_exam1=20, max_gen_exam2=20, seed=0)
+    default = KMA(**kw).run()
+    explicit = KMA(adaptive_step=10, **kw).run()  # default step = population_size, as in MATLAB
+    assert default["opt_val"] == explicit["opt_val"]
+    np.testing.assert_array_equal(default["evo_pop_size"], explicit["evo_pop_size"])
+    assert set(np.diff(default["evo_pop_size"][20:])) == {-10, 0, 10}  # after the 20 stage-1 generations
+
+    r = KMA(adaptive_step=1, **kw).run()
+    assert set(np.diff(r["evo_pop_size"][20:])) == {-1, 0, 1}  # one individual at a time, both ways
+    assert r["num_eva"] <= 8000 + 40

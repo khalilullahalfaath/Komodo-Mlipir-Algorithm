@@ -38,6 +38,7 @@ class KMA:
         max_gen_exam1=100,  # first stage: generation at which the improve rate is checked
         max_gen_exam2=1000,  # first stage: maximum number of generations
         seed=None,
+        adaptive_step=None,  # second stage: individuals added / removed per adaptation; None = population_size
     ) -> None:
         self.function_id = function_id
         self.dimension = dimension
@@ -47,6 +48,7 @@ class KMA:
         self.max_adaptive_pop_size = population_size * max_adaptive_size
         self.max_gen_exam1 = max_gen_exam1
         self.max_gen_exam2 = max_gen_exam2
+        self.adaptive_step = adaptive_step
         if seed is not None:
             np.random.seed(seed)
         self.num_eva = 0  # see run(); defined early so fitness hooks can always read it
@@ -211,7 +213,10 @@ class KMA:
         if not is_global and self.num_eva <= self.max_eval_number:
             swarm = len(pop)
             nbm = swarm // 2
-            step = swarm  # increment / decrement of the adaptive population size
+            # increment / decrement of the adaptive population size: one micro-swarm, as in the MATLAB
+            # original. With a smaller step the size stops being a multiple of the swarm; the
+            # `ada % swarm` individuals left over after the swarms are formed skip that generation's move.
+            step = swarm if self.adaptive_step is None else self.adaptive_step
             max_ada = self.max_adaptive_pop_size
             max_improve = max_stagnan = 2
             gen_improve = gen_stagnan = 0
