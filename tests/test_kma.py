@@ -101,3 +101,32 @@ def test_adaptive_step():
     r = KMA(adaptive_step=1, **kw).run()
     assert set(np.diff(r["evo_pop_size"][20:])) == {-1, 0, 1}  # one individual at a time, both ways
     assert r["num_eva"] <= 8000 + 40
+
+
+def test_stage2_options():
+    kw = dict(function_id=10, dimension=10, max_eval_number=8000, population_size=10, min_adaptive_size=2,
+              max_adaptive_size=4, max_gen_exam1=20, max_gen_exam2=20, seed=0)
+    default = KMA(**kw).run()
+    explicit = KMA(init_adaptive_size=4, max_improve=2, max_stagnan=2, count_fill_evals=False, **kw).run()
+    assert default["opt_val"] == explicit["opt_val"]  # the defaults are the MATLAB behaviour
+    np.testing.assert_array_equal(default["evo_pop_size"], explicit["evo_pop_size"])
+
+    small = KMA(init_adaptive_size=2, **kw).run()["evo_pop_size"][20:]
+    assert small[0] <= 30 and small.max() == 40  # starts at the minimum (20), can still grow to the maximum
+
+    def shrinks(r):
+        return int((np.diff(r["evo_pop_size"][20:]) < 0).sum())
+    assert shrinks(KMA(max_improve=0, **kw).run()) > shrinks(default)  # one improving generation is enough
+
+    calls = {}
+    for count in (False, True):
+        class Probe(KMA):
+            n = 0
+
+            def fitness(self, x):
+                Probe.n += 1
+                return super().fitness(x)
+        r = Probe(count_fill_evals=count, **kw).run()
+        calls[count] = Probe.n
+        assert r["num_eva"] <= 8000 + 2 * 40  # the last generation plus one reposition may run past the budget
+    assert calls[True] < calls[False]  # the 30 fill evaluations now come out of the budget

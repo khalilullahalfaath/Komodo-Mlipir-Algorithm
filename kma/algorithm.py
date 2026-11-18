@@ -39,6 +39,12 @@ class KMA:
         max_gen_exam2=1000,  # first stage: maximum number of generations
         seed=None,
         adaptive_step=None,  # second stage: individuals added / removed per adaptation; None = population_size
+        # The four below default to the MATLAB original. They exist for noisy, step-shaped fitness (e.g. feature
+        # selection), where the best-so-far rarely improves for several generations in a row.
+        init_adaptive_size=None,  # second stage starts with population_size * this; None = max_adaptive_size
+        max_improve=2,  # shrink after more than this many improving generations in a row
+        max_stagnan=2,  # grow (or reposition at the maximum) after more than this many stagnant generations
+        count_fill_evals=False,  # count the evaluations of the individuals that fill the stage-2 population
     ) -> None:
         self.function_id = function_id
         self.dimension = dimension
@@ -49,6 +55,10 @@ class KMA:
         self.max_gen_exam1 = max_gen_exam1
         self.max_gen_exam2 = max_gen_exam2
         self.adaptive_step = adaptive_step
+        init = max_adaptive_size if init_adaptive_size is None else init_adaptive_size
+        self.init_adaptive_pop_size = population_size * init
+        self.max_improve, self.max_stagnan = max_improve, max_stagnan
+        self.count_fill_evals = count_fill_evals
         if seed is not None:
             np.random.seed(seed)
         self.num_eva = 0  # see run(); defined early so fitness hooks can always read it
@@ -218,10 +228,13 @@ class KMA:
             # `ada % swarm` individuals left over after the swarms are formed skip that generation's move.
             step = swarm if self.adaptive_step is None else self.adaptive_step
             max_ada = self.max_adaptive_pop_size
-            max_improve = max_stagnan = 2
+            max_improve, max_stagnan = self.max_improve, self.max_stagnan
             gen_improve = gen_stagnan = 0
 
-            cons = self.generate_population(max_ada - swarm)
+            init = min(max(self.init_adaptive_pop_size, self.min_adaptive_pop_size, swarm), max_ada)
+            cons = self.generate_population(init - swarm)
+            if self.count_fill_evals:  # MATLAB does not count these
+                self.num_eva += len(cons)
             pop = np.vstack([pop, cons])
             fx = np.concatenate([fx, self._evaluate_all(cons)])
             one_elit = fx.min()
