@@ -120,6 +120,28 @@ class KMA:
         new_fx = self.fitness(new)
         return (new, new_fx) if new_fx < fx else (x, fx)
 
+    # ---------- movement steps (hooks) ----------
+    # A move accumulates a step v over the followed males; the new position is trim(x + v).
+    # Override these (not the loops below) for another search space, e.g. bit operators that apply
+    # each follow in turn: return (new current position) - x.
+    def _attract(self, x, v, h):
+        """Big male x moves towards h (v = step accumulated so far)."""
+        return v + np.random.rand() * (h - x)
+
+    def _distract(self, x, v, h):
+        """Big male x moves away from h."""
+        return v + np.random.rand() * (x - h)
+
+    def _mlipir(self, x, v, h, idx):
+        """Small male x follows h along the dimensions idx (a random subset)."""
+        b = np.zeros(self.var_num)
+        b[idx] = 1
+        return v + np.random.rand(self.var_num) * (h * b) - x * b
+
+    def _sexual(self, best_male_fx, female_fx):
+        """True: the female mates the best big male; False: parthenogenesis."""
+        return best_male_fx < female_fx or np.random.rand() < 0.5
+
     # ---------- movements ----------
     def _move_big_males_female(self, bm, bm_fx, female, female_fx, hq, hq_fx, max_fol):
         """Big males follow other high-quality males; the winner then mates the female."""
@@ -130,16 +152,16 @@ class KMA:
             for fol, ind in enumerate(np.random.permutation(len(hq)), 1):
                 if ind != s:
                     if hq_fx[ind] < temp_fx[s] or np.random.rand() < 0.5:  # attraction
-                        vm += np.random.rand() * (hq[ind] - temp[s])
+                        vm = self._attract(temp[s], vm, hq[ind])
                     else:  # distraction
-                        vm += np.random.rand() * (temp[s] - hq[ind])
+                        vm = self._distract(temp[s], vm, hq[ind])
                 if fol >= limit:
                     break
             temp[s] = self.trim(temp[s] + vm)
             temp_fx[s] = self.fitness(temp[s])
         bm, bm_fx = self._replacement(bm, bm_fx, temp, temp_fx)
 
-        if bm_fx[0] < female_fx or np.random.rand() < 0.5:  # sexual reproduction
+        if self._sexual(bm_fx[0], female_fx):  # sexual reproduction
             o1, o2 = self._crossover(bm[0], female)
             fx1, fx2 = self.fitness(o1), self.fitness(o2)
             child, child_fx = (o1, fx1) if fx1 < fx2 else (o2, fx2)
@@ -158,9 +180,7 @@ class KMA:
             v = np.zeros(self.var_num)
             limit = np.random.randint(1, max_fol + 1)
             for fol, ind in enumerate(np.random.permutation(len(hq)), 1):
-                b = np.zeros(self.var_num)
-                b[np.random.permutation(self.var_num)[:d]] = 1
-                v = v + np.random.rand(self.var_num) * (hq[ind] * b) - sm[w] * b
+                v = self._mlipir(sm[w], v, hq[ind], np.random.permutation(self.var_num)[:d])
                 if fol >= limit:
                     break
             new_sm[w] = self.trim(sm[w] + v)

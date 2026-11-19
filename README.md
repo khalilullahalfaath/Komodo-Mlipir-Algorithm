@@ -18,4 +18,7 @@ r = KMA(function_id=10, dimension=30, seed=0).run()   # dict: best_individual, o
 
 This package is the single source of truth for the algorithm (verified against the MATLAB original, see
 `comparison/`). Variants such as the binary / feature-selection version subclass `KMA` and override
-`_setup_problem`, `fitness` and `trim` instead of copying the algorithm.
+`_setup_problem`, `fitness` and `trim` instead of copying the algorithm. A different search space
+(e.g. bit vectors) also overrides the operators (`generate_population`, `_crossover`, `_mutation`,
+`_add_individual`, `_reposition`) and the movement steps (`_attract`, `_distract`, `_mlipir`, `_sexual`),
+keeping the movement loops and `run()` here.

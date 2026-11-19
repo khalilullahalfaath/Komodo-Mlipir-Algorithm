@@ -74,6 +74,24 @@ def test_hooks_allow_subclass():
     assert r["opt_val"] < 1e-3 and np.allclose(r["best_individual"], 1.0, atol=1e-2)
 
 
+def test_step_hooks():
+    calls = dict.fromkeys(("_attract", "_distract", "_mlipir", "_sexual"), 0)
+
+    class Counted(KMA):  # delegating overrides: same run, every step hook reached
+        pass
+
+    for name in calls:
+        def hook(self, *a, _n=name):
+            calls[_n] += 1
+            return getattr(KMA, _n)(self, *a)
+        setattr(Counted, name, hook)
+
+    kw = dict(function_id=10, dimension=10, max_eval_number=3000, seed=0)
+    a, b = KMA(**kw).run(), Counted(**kw).run()
+    assert a["opt_val"] == b["opt_val"] and np.array_equal(a["best_individual"], b["best_individual"])
+    assert all(calls.values()), calls
+
+
 def test_fitness_hook_sees_progress():
     seen = []
 
